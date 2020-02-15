@@ -1,0 +1,63 @@
+stages:
+  - test
+  - build
+
+variables:
+  MOCK_ZENDESK_PORT: "8888"
+  MOCK_ZENDESK_USERNAME: "dummy"
+  MOCK_ZENDESK_API_KEY: "dummy"
+
+check_service_starts:
+  stage: test
+  image: $CI_REGISTRY/yolaw/ci-ubuntu:master
+  only:
+    - master
+    - merge_requests
+  interruptible: true
+  before_script:
+    - python3 -m venv /tmp/virtualenv
+  script:
+    - set -e
+
+    - /tmp/virtualenv/bin/python -m mock_zendesk &
+    - SERVICE_PID=$!
+
+    # let the service enough time to start
+    # and open a socket
+    # https://unix.stackexchange.com/questions/5277/how-do-i-tell-a-script-to-wait-for-a-process-to-start-accepting-requests-on-a-po
+    - timeout 15 bash -c "until echo > /dev/tcp/localhost/$MOCK_ZENDESK_PORT; do sleep 0.5; done"
+
+    # Note: replace by a more complete test suite
+    - curl "http://127.0.0.1:$MOCK_ZENDESK_PORT"
+
+    - kill "$SERVICE_PID"
+
+black:
+  image: $CI_REGISTRY/yolaw/ci-image:master
+  stage: test
+  script:
+    - black --check .
+  only:
+    - master
+    - merge_requests
+  interruptible: true
+  retry:
+    max: 2
+    when:
+      - runner_system_failure
+      - stuck_or_timeout_failure
+
+image_build:
+  stage: build
+  image: gitlab/dind:latest
+  script:
+    - docker login -u gitlab-ci-token -p "$CI_BUILD_TOKEN" "$CI_REGISTRY"
+    - docker build -t "$CI_REGISTRY_IMAGE":latest .
+    - docker push "$CI_REGISTRY_IMAGE":latest
+
+  only:
+    - master
+    - merge_requests
+  interruptible: true
+  tags:
+    - can-use-docker
