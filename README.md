@@ -1,5 +1,9 @@
 # mock-zendesk
 
+
+![](https://img.shields.io/docker/build/allansimon/mock-zendesk.svg)
+
+
 HTTP Service that aims to replicate the Zendesk API and logic
 so that one can use it in local environment has a drop-in replacement to zendesk
 which is practical when you're several developers who all needs to modify
