@@ -141,7 +141,7 @@ class MockHandler(BaseHTTPRequestHandler):
         )
 
     def do_PUT(self):
-        """Handle POST requests
+        """Handle PUT requests
         """
 
         if self._verify_auth() is False:
@@ -244,6 +244,30 @@ class MockHandler(BaseHTTPRequestHandler):
                 COMMENTS_STORE[ticket_id] = [comment]
 
             self._send_json_response(body_dict, status_code=201)
+            return
+
+        self._send_json_response({}, status_code=204)
+
+    def do_DELETE(self):
+        """Handle DELETE requests
+        """
+        if self._verify_auth() is False:
+            self._send_json_response({}, status_code=401)
+
+        if self.path.startswith("/api/v2/tickets/"):
+            ticket_part = self.path.split("/")[4]
+            if not ticket_part.endswith(".json"):
+                self._send_json_response({}, status_code=404)
+                return
+
+            ticket_id = int(ticket_part.split(".")[0])
+            ticket = TICKETS_STORE.get(ticket_id)
+            if ticket is None:
+                self._send_json_response({}, status_code=404)
+                return
+
+            del TICKETS_STORE[ticket_id]
+            self._send_json_response({}, status_code=204)
             return
 
         self._send_json_response({}, status_code=204)
