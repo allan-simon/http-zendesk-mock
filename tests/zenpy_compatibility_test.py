@@ -2,6 +2,7 @@ import os
 
 from zenpy import Zenpy
 from zenpy.lib.api_objects import Ticket, User, Comment
+from zenpy.lib.exception import APIException
 
 USERNAME = os.environ["MOCK_ZENDESK_USERNAME"]
 API_KEY = os.environ["MOCK_ZENDESK_API_KEY"]
@@ -37,5 +38,11 @@ def _main():
     updated_ticket = zendesk_client.tickets(id=new_ticket.id)
     print(ticket.tags)
 
+    zendesk_client.tickets.delete(new_ticket)
+    try:
+        deletedTicket = zendesk_client.tickets(id=new_ticket.id)
+    except APIException as e:
+        if e.response.status_code == 404:
+            print("Ticket deleted successfully")
 
 _main()
